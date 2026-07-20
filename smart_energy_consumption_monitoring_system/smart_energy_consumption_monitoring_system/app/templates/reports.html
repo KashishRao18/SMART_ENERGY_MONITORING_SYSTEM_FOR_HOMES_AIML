@@ -1,0 +1,112 @@
+{% extends "layouts/base.html" %}
+{% block title %}Reports - Smart Energy Monitoring{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<!-- Page Header - Step 11: Reports -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <p class="text-muted mb-0">View comprehensive summaries, insights, and continuous monitoring output.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-info shadow-sm rounded-pill px-4 text-white" onclick="generateReport()">
+            <i class="fas fa-file-export me-2"></i> Generate Report
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12" id="reportContent">
+        <!-- Default State -->
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-5 text-center text-muted">
+                <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+                    <i class="fas fa-file-signature fa-3x text-secondary opacity-50"></i>
+                </div>
+                <h5 class="fw-medium text-dark mb-2">No Report Generated Yet</h5>
+                <p class="mb-0">Click the "Generate Report" button above to create a comprehensive snapshot of your energy usage.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function generateReport() {
+        try { await fetch('/api/data/summary'); } catch (e) { await fetch('/api/data/load', { method: 'POST' }); }
+        const res = await fetch('/api/report/generate');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const r = data.report;
+            const notices = [];
+            if (r.prediction && r.prediction.status === 'not_trained') { notices.push('Predictions unavailable until models are trained.'); }
+            if (r.anomaly && r.anomaly.status === 'not_trained') { notices.push('Anomaly insights unavailable until the detector is trained.'); }
+
+            // Handle peak hours display with proper null checks
+            let peakHoursDisplay = 'N/A';
+            if (r.peak_hours && r.peak_hours.peak_hours && r.peak_hours.peak_hours.length > 0) {
+                peakHoursDisplay = r.peak_hours.peak_hours.map(h => h + ':00').join(', ');
+            } else if (r.peak_hours && r.peak_hours.peak_hours) {
+                peakHoursDisplay = 'No peak hours detected';
+            }
+
+            document.getElementById('reportContent').innerHTML = `
+                <div class="card border-0 shadow-sm" style="border-top: 4px solid var(--info-color) !important;">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-clipboard-check text-info me-2"></i>Report Summary</h5>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Generated At</h6>
+                                    <p class="fw-medium text-dark mb-0">${r.generated_at}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Total Records Analyzed</h6>
+                                    <p class="fw-medium text-dark mb-0">${r.summary.total_records.toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Average Power</h6>
+                                    <p class="fw-medium text-dark mb-0">${((r.summary.target || r.summary.global_active_power || { mean: 0 }).mean || 0).toFixed(3)} kW</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Peak Hours</h6>
+                                    <p class="fw-medium text-dark mb-0">${peakHoursDisplay}</p>
+                                </div>
+                            </div>
+                            ${r.peak_hours && r.peak_hours.threshold ? `
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Peak Threshold</h6>
+                                    <p class="fw-medium text-danger mb-0">${r.peak_hours.threshold.toFixed(3)} kW</p>
+                                </div>
+                            </div>` : ''}
+                            ${r.peak_hours && r.peak_hours.average ? `
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Average Usage (Peak)</h6>
+                                    <p class="fw-medium text-warning mb-0">${r.peak_hours.average.toFixed(3)} kW</p>
+                                </div>
+                            </div>` : ''}
+                        </div>
+                        
+                        ${notices.length ? `
+                        <div class="alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning-emphasis d-flex align-items-center rounded-3 mb-0" role="alert">
+                            <i class="fas fa-exclamation-circle fa-lg me-3"></i>
+                            <div>
+                                ${notices.join('<br>')}
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    }
+</script>
+{% endblock %}

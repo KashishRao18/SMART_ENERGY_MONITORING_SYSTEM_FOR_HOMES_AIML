@@ -1,0 +1,24 @@
+<nav id="topbar" class="navbar px-3 px-md-4">
+    <div class="container-fluid px-0">
+        <div class="d-flex align-items-center w-100">
+            <button id="menu-toggle" class="me-3" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">
+                    {{ resolved_page_title if resolved_page_title else request.endpoint|replace('_', ' ')|title }}
+                </h5>
+                <small class="text-muted d-none d-md-inline">Smart Energy Consumption Monitoring</small>
+            </div>
+
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 d-none d-md-inline-flex align-items-center">
+                    <i class="fas fa-circle me-2" style="font-size: 8px;"></i>System Online
+                </span>
+                <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                    {{ session.get('username', 'Guest') }}
+                </span>
+            </div>
+        </div>
+    </div>
+</nav>

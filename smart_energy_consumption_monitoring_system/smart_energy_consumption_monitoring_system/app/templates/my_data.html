@@ -1,0 +1,403 @@
+{% extends "layouts/base.html" %}
+{% block title %}Upload Data - Smart Energy Consumption Monitoring{% endblock %}
+{% block page_title %}My Data{% endblock %}
+{% block content %}
+
+<!-- Page Header - Step 1 & 2 -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <p class="text-muted mb-0">Upload your smart meter readings or public CSV datasets to begin analysis.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <span class="badge bg-primary bg-gradient px-3 py-2 rounded-pill shadow-sm fs-6"><i class="fas fa-magic me-1"></i> No Hardware Required</span>
+    </div>
+</div>
+
+<!-- Step 2: Data Upload Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-top: 4px solid var(--primary-color) !important;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-file-csv text-primary me-2"></i>Import Energy Data (CSV)</h5>
+            </div>
+            <div class="card-body px-4 py-4">
+                <div class="alert bg-primary bg-opacity-10 text-primary border-primary border-opacity-25 rounded-3 mb-4 d-flex align-items-start">
+                    <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                    <div>
+                        <strong>Supported Data Sources:</strong> Smart meter CSVs, public datasets (UCI/Kaggle), or exported daily readings.
+                    </div>
+                </div>
+
+                <form id="trainingUploadForm" enctype="multipart/form-data" class="bg-light p-4 rounded-4 border border-light-subtle">
+                    <div class="row align-items-end">
+                        <div class="col-md-8 mb-3 mb-md-0">
+                            <label class="form-label fw-bold text-secondary mb-2">Select CSV File</label>
+                            <input type="file" class="form-control form-control-lg bg-white" name="file" accept=".csv" required>
+                            <div class="form-text mt-2"><i class="fas fa-asterisk text-danger me-1" style="font-size: 0.7em;"></i>File must contain timestamp and power consumption columns</div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm rounded-3">
+                                <i class="fas fa-upload me-2"></i>Upload & Process
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="uploadStatus" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step 3-6: Processing Status -->
+<div class="row mb-4" id="processingSection" style="display: none;">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-cogs text-secondary me-2"></i>Processing Status</h5>
+            </div>
+            <div class="card-body px-4 py-4">
+                <div class="row text-center g-4">
+                    <div class="col-md-3">
+                        <div class="process-step p-3 border rounded-4 bg-light h-100 transition-all" id="step3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-file-csv fa-2x text-primary"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">Reading Data</h6>
+                            <small class="text-muted">Parsing timestamps & values</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="process-step p-3 border rounded-4 bg-light h-100 transition-all" id="step4">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-broom fa-2x text-warning"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">Cleaning Data</h6>
+                            <small class="text-muted">Handling missing & invalid points</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="process-step p-3 border rounded-4 bg-light h-100 transition-all" id="step5">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-robot fa-2x text-success"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">AI Detection</h6>
+                            <small class="text-muted">Identifying appliance patterns</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="process-step p-3 border rounded-4 bg-light h-100 transition-all" id="step6">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-calculator fa-2x text-info"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">Calculating Units</h6>
+                            <small class="text-muted">Aggregating consumption</small>
+                        </div>
+                    </div>
+                </div>
+                <div id="processingStatus" class="mt-4 text-center fw-medium"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Existing Data Info -->
+<div class="row mb-4" id="trainingInfoSection" style="display: none;">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid var(--success-color) !important;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-database text-success me-2"></i>Active Dataset</h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2 fw-medium" onclick="trainWithUserData()" id="trainModelBtn">
+                        <i class="fas fa-brain me-1"></i> Update AI Model
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-medium" onclick="deleteUserTrainingData()">
+                        <i class="fas fa-trash-alt me-1"></i> Clear Data
+                    </button>
+                </div>
+            </div>
+            <div class="card-body px-4 pb-4 pt-3">
+                <div id="trainingDataDetails" class="bg-light p-3 rounded-3 border"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bills List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-history text-secondary me-2"></i>Billing History</h5>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadBills()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body px-4 py-4">
+                <div class="table-responsive bg-white rounded-3 border">
+                    <table class="table table-hover align-middle mb-0" id="billsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-secondary fw-semibold">ID</th>
+                                <th class="text-secondary fw-semibold">Period</th>
+                                <th class="text-secondary fw-semibold">Units (kWh)</th>
+                                <th class="text-secondary fw-semibold">Amount</th>
+                                <th class="text-secondary fw-semibold">Rate/Unit</th>
+                                <th class="text-secondary fw-semibold">Status</th>
+                                <th class="text-secondary fw-semibold text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billsTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Loading historic records...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2" id="loadingText">Processing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show processing steps
+    function showProcessing() {
+        document.getElementById('processingSection').style.display = 'block';
+        ['step3', 'step4', 'step5', 'step6'].forEach(id => {
+            document.getElementById(id).style.opacity = '0.3';
+        });
+    }
+
+    function updateProcessingStep(step, status) {
+        const el = document.getElementById(step);
+        el.style.opacity = '1';
+        const icon = el.querySelector('i');
+        if (status === 'complete') {
+            icon.className = 'fas fa-check-circle fa-2x text-success';
+        }
+    }
+
+    // Check for existing training data
+    async function checkTrainingData() {
+        try {
+            const res = await fetch('/api/user/training/data');
+            const data = await res.json();
+            const statusDiv = document.getElementById('uploadStatus');
+            const infoSection = document.getElementById('trainingInfoSection');
+            const trainBtn = document.getElementById('trainModelBtn');
+
+            if (data.status === 'success' && data.has_data) {
+                infoSection.style.display = 'block';
+                document.getElementById('trainingDataDetails').innerHTML = `
+                <div class="row">
+                    <div class="col-md-3"><strong>Records:</strong> ${data.records}</div>
+                    <div class="col-md-3"><strong>Period:</strong> ${data.period?.month || 'N/A'} ${data.period?.year || ''}</div>
+                    <div class="col-md-3"><strong>Date Range:</strong> ${data.date_range.start ? data.date_range.start.substring(0, 10) : 'N/A'} to ${data.date_range.end ? data.date_range.end.substring(0, 10) : 'N/A'}</div>
+                    <div class="col-md-12 mt-2"><strong>Columns:</strong> ${(data.columns || []).join(', ')}</div>
+                </div>
+            `;
+                statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Data uploaded successfully! You can now analyze your energy consumption.</div>';
+                trainBtn.disabled = false;
+            } else {
+                infoSection.style.display = 'block';
+                document.getElementById('trainingDataDetails').innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-2"></i>No Active Dataset</div>';
+                statusDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-info-circle"></i> No Active Dataset</div>';
+                trainBtn.disabled = true;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Upload training data
+    document.getElementById('trainingUploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const statusDiv = document.getElementById('uploadStatus');
+        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        const loadingText = document.getElementById('loadingText');
+
+        showProcessing();
+        loadingText.textContent = 'Uploading and reading data...';
+        modal.show();
+
+        // Step 3: Reading data
+        updateProcessingStep('step3', 'complete');
+        await new Promise(r => setTimeout(r, 500));
+
+        try {
+            loadingText.textContent = 'Cleaning and validating data...';
+
+            // Step 4: Cleaning
+            updateProcessingStep('step4', 'complete');
+            await new Promise(r => setTimeout(r, 500));
+
+            loadingText.textContent = 'Running AI appliance detection...';
+
+            // Step 5: AI Detection
+            updateProcessingStep('step5', 'complete');
+            await new Promise(r => setTimeout(r, 500));
+
+            loadingText.textContent = 'Calculating appliance units...';
+            const res = await fetch('/api/user/training/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            // Step 6: Calculate units
+            updateProcessingStep('step6', 'complete');
+
+            if (data.status === 'success') {
+                statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Data successfully processed! ' + data.records + ' records loaded.</div>';
+                checkTrainingData();
+                loadBills();
+            } else {
+                statusDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+            }
+        } catch (e) {
+            statusDiv.innerHTML = '<div class="alert alert-danger">Error: ' + e.message + '</div>';
+        } finally {
+            modal.hide();
+            loadingText.textContent = 'Processing...';
+        }
+    });
+
+    // Train with user data
+    async function trainWithUserData() {
+        const statusDiv = document.getElementById('uploadStatus');
+        statusDiv.innerHTML = '<div class="alert alert-info">Training model with your data...</div>';
+
+        try {
+            const res = await fetch('/api/user/training/train', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                statusDiv.innerHTML = '<div class="alert alert-success">Model trained! Best model: ' + data.metrics.best_model.name + ' (R2: ' + data.metrics.best_model.r2_score.toFixed(4) + ')</div>';
+            } else {
+                statusDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+            }
+        } catch (e) {
+            statusDiv.innerHTML = '<div class="alert alert-danger">Error: ' + e.message + '</div>';
+        }
+    }
+
+    // Delete user training data
+    async function deleteUserTrainingData() {
+        if (!confirm('Are you sure you want to delete your training data?')) return;
+
+        try {
+            const res = await fetch('/api/user/training/delete', { method: 'DELETE' });
+            const data = await res.json();
+
+            document.getElementById('uploadStatus').innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+            checkTrainingData();
+            loadBills();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Load bills
+    async function loadBills() {
+        try {
+            const res = await fetch('/api/user/bills');
+            const data = await res.json();
+
+            const tbody = document.getElementById('billsTableBody');
+
+            if (data.status === 'success' && data.bills && data.bills.length > 0) {
+                tbody.innerHTML = data.bills.map(bill => {
+                    const isActive = Boolean(bill.is_active);
+                    const canSetActive = !isActive && Boolean(bill.file_exists);
+                    return `
+                        <tr class="${isActive ? 'table-success' : ''}">
+                            <td><small class="text-muted fw-medium border rounded px-2 py-1 bg-light">#${bill.bill_id ? bill.bill_id.toString() : 'N/A'}</small></td>
+                            <td><span class="fw-medium">${bill.billing_month || 'N/A'}</span> <span class="text-muted">${bill.year || 'N/A'}</span></td>
+                            <td class="fw-medium">${Number(bill.units_consumed || 0).toFixed(2)}</td>
+                            <td class="fw-bold text-dark">$${Number(bill.total_amount || 0).toFixed(2)}</td>
+                            <td><span class="badge bg-light text-dark border">$${Number(bill.rate_per_unit || 0).toFixed(2)}/u</span></td>
+                            <td>
+                                <span class="badge ${isActive ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${isActive ? 'text-success border border-success border-opacity-25' : 'text-secondary border border-secondary border-opacity-25'} px-2 py-1">
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex align-items-center gap-2">
+                                ${canSetActive ? `
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="setActiveBill('${bill.bill_id}')" title="Set Active">
+                                        <i class="fas fa-bullseye me-1"></i>Set Active
+                                    </button>
+                                ` : ''}
+                                    <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="deleteBill('${bill.bill_id}')" title="Delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No bills uploaded yet.</td></tr>';
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('billsTableBody').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading bills</td></tr>';
+        }
+    }
+
+    async function setActiveBill(billId) {
+        try {
+            const res = await fetch('/api/user/bills/' + billId + '/activate', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                loadBills();
+                checkTrainingData();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function deleteBill(billId) {
+        if (!confirm('Are you sure you want to delete this record?')) return;
+        try {
+            const res = await fetch('/api/user/bills/' + billId, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                loadBills();
+                checkTrainingData();
+            } else {
+                alert(data.message || 'Failed to delete record');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to delete record');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        checkTrainingData();
+        loadBills();
+    });
+</script>
+{% endblock %}

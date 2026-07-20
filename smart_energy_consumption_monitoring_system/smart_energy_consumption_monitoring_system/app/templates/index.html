@@ -1,0 +1,354 @@
+{% extends "layouts/base.html" %}
+{% block title %}Home - Smart Energy Consumption Monitoring{% endblock %}
+{% block page_title %}Home{% endblock %}
+{% block extra_css %}
+<style>
+    .stat-card.primary {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .stat-card.info {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+    }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Hero Section -->
+<div class="page-header bg-white p-4 rounded mb-4 border-start border-4 border-success">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h2 class="mb-2"><i class="fas fa-bolt text-success"></i> Smart Energy Consumption Monitoring</h2>
+            <p class="text-muted mb-1">AI-Powered Energy Analytics | Upload Data | Detect Appliances | Predict Usage | Detect Anomalies</p>
+            <small class="text-muted">Academic project workflow: no hardware required.</small>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="/my-data" class="btn btn-primary btn-lg">
+                <i class="fas fa-cloud-upload-alt me-2"></i>Upload Energy Data
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Process Flow Steps -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-route text-primary me-2"></i>User Flow (Step 1-10)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-upload fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">1. Open App</h6>
+                        <small class="text-muted">Login and open dashboard</small>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-cogs fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">2. Upload CSV</h6>
+                        <small class="text-muted">Smart meter or public dataset</small>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-microchip fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">3. Read & Clean</h6>
+                        <small class="text-muted">System processes automatically</small>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-calculator fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">4. Detect Appliances</h6>
+                        <small class="text-muted">Power spikes and ON/OFF patterns</small>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-chart-line fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">5. Predict Tomorrow</h6>
+                        <small class="text-muted">RandomForest forecasting</small>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="step-icon bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-chart-pie fa-lg"></i>
+                        </div>
+                        <h6 class="mt-2">6. Alerts & Actions</h6>
+                        <small class="text-muted">Anomaly alerts and saving tips</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card primary">
+            <div class="stat-value" id="total-records">-</div>
+            <div class="stat-label">Total Records</div>
+            <i class="fas fa-database stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card success">
+            <div class="stat-value" id="avg-consumption">-</div>
+            <div class="stat-label">Avg Consumption (kW)</div>
+            <i class="fas fa-bolt stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card warning">
+            <div class="stat-value" id="peak-hour">-</div>
+            <div class="stat-label">Peak Usage Hour</div>
+            <i class="fas fa-clock stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card info">
+            <div class="stat-value" id="status">Ready</div>
+            <div class="stat-label">System Status</div>
+            <i class="fas fa-check-circle stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Actions -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                <h5>Upload Energy Data</h5>
+                <p class="text-muted">Upload your smart meter CSV file to start analysis</p>
+                <a href="/my-data" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i> Upload Now
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                <h5>View Dashboard</h5>
+                <p class="text-muted">See daily trends, hourly patterns & consumption</p>
+                <a href="/dashboard" class="btn btn-success">
+                    <i class="fas fa-chart-line me-1"></i> Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-microchip fa-3x text-info mb-3"></i>
+                <h5>Appliance Detection</h5>
+                <p class="text-muted">AI identifies which appliances are using power</p>
+                <a href="/analytics" class="btn btn-info text-white">
+                    <i class="fas fa-microchip me-1"></i> Detect Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                <h5>AI Predictions</h5>
+                <p class="text-muted">Predict tomorrow's usage with ML models</p>
+                <a href="/prediction" class="btn btn-warning text-white">
+                    <i class="fas fa-chart-line me-1"></i> See Predictions
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                <h5>Anomaly Detection</h5>
+                <p class="text-muted">Get alerts for unusual energy patterns</p>
+                <a href="/anomaly" class="btn btn-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Detect Anomalies
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-file-alt fa-3x text-secondary mb-3"></i>
+                <h5>Reports</h5>
+                <p class="text-muted">Generate detailed energy usage reports</p>
+                <a href="/reports" class="btn btn-secondary">
+                    <i class="fas fa-file-alt me-1"></i> View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Source Info -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-database text-primary"></i> Data Sources</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Smart Meter CSV from
+                        Electricity Board</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Public datasets (UCI, Kaggle)
+                    </li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Daily exported meter readings
+                    </li>
+                    <li class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>Manual electricity bill entry
+                    </li>
+                </ul>
+                <button class="btn btn-primary mt-2" onclick="initializeSystem()">
+                    <i class="fas fa-play"></i> Check System Status
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-robot text-info"></i> AI Features</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="fas fa-brain text-success me-2"></i>Appliance detection using ML
+                        classification</li>
+                    <li class="mb-2"><i class="fas fa-chart-line text-success me-2"></i>RandomForest prediction models
+                    </li>
+                    <li class="mb-2"><i class="fas fa-search text-success me-2"></i>Isolation Forest anomaly detection
+                    </li>
+                    <li class="mb-0"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Bill estimation & cost
+                        tracking</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Processing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadHomeStats(options = {}) {
+        const { showModal = false, showBannerOnSuccess = false } = options;
+        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        const statusEl = document.getElementById('status');
+        const recordsEl = document.getElementById('total-records');
+        const avgEl = document.getElementById('avg-consumption');
+        const peakEl = document.getElementById('peak-hour');
+
+        if (showModal) modal.show();
+        statusEl.textContent = 'Loading';
+
+        try {
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+            if (summaryData.status === 'success') {
+                statusEl.textContent = 'Data Ready';
+                recordsEl.textContent = summaryData.summary.total_records.toLocaleString();
+                const tgt = summaryData.summary.target || summaryData.summary.global_active_power;
+                avgEl.textContent = tgt ? Number(tgt.mean || 0).toFixed(2) : '-';
+            } else {
+                statusEl.textContent = 'No Data';
+                recordsEl.textContent = '-';
+                avgEl.textContent = '-';
+                peakEl.textContent = '-';
+                showBanner('No system data available. Use Upload Data to upload your own data.', 'warning');
+                return;
+            }
+
+            const peakRes = await fetch('/api/analytics/peak-hours');
+            const peakData = await peakRes.json();
+            if (peakData.status === 'success' && peakData.peak_hours && peakData.peak_hours.peak_hours && peakData.peak_hours.peak_hours.length > 0) {
+                peakEl.textContent = peakData.peak_hours.peak_hours[0] + ':00';
+            } else {
+                peakEl.textContent = '-';
+            }
+
+            statusEl.textContent = 'Ready';
+            if (showBannerOnSuccess) {
+                showBanner('System checked. Data loaded.', 'success');
+            }
+        } catch (e) {
+            statusEl.textContent = 'Error';
+            recordsEl.textContent = '-';
+            avgEl.textContent = '-';
+            peakEl.textContent = '-';
+            if (showBannerOnSuccess) {
+                showBanner('Initialization error: ' + e.message, 'danger');
+            }
+        } finally {
+            if (showModal) modal.hide();
+        }
+    }
+
+    async function initializeSystem() {
+        await loadHomeStats({ showModal: true, showBannerOnSuccess: true });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadHomeStats();
+        try {
+            const res = await fetch('/api/health');
+            const data = await res.json();
+            console.log('System:', data);
+        } catch (e) { console.log('Not ready'); }
+    });
+
+    // Banner notification
+    function showBanner(message, type = 'info') {
+        let banner = document.getElementById('banner-alert');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'banner-alert';
+            banner.className = 'alert alert-info position-fixed top-0 end-0 m-3 shadow';
+            banner.style.zIndex = '2000';
+            document.body.appendChild(banner);
+        }
+        banner.className = `alert alert-${type} position-fixed top-0 end-0 m-3 shadow`;
+        banner.textContent = message;
+        setTimeout(() => {
+            banner.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
+

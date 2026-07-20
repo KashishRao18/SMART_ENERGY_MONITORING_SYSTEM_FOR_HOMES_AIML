@@ -1,0 +1,14 @@
+{
+  "typeCheckingMode": "basic",
+  "stubPath": "typings",
+  "reportMissingTypeStubs": "warning",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalIterable": "none",
+  "reportOptionalCall": "none",
+  "reportArgumentType": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportCallIssue": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalMemberAccessFromStub": "none"
+}

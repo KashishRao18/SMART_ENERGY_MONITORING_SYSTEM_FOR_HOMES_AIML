@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Energy System{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2176ff;
+            --secondary-color: #2f4858;
+            --success-color: #00a878;
+            --warning-color: #f18805;
+            --danger-color: #d7263d;
+            --info-color: #3e92cc;
+            --surface: #ffffff;
+            --surface-soft: #f5f8ff;
+            --text-main: #16203b;
+            --text-muted: #5f6c8e;
+            --border-color: #e4e9f7;
+            --sidebar-width: 272px;
+            --sidebar-collapsed-width: 84px;
+            --topbar-height: 68px;
+            --content-gap: 1.25rem;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at 15% 15%, rgba(33, 118, 255, 0.1), transparent 35%),
+                radial-gradient(circle at 85% 10%, rgba(0, 168, 120, 0.1), transparent 30%),
+                linear-gradient(160deg, #eef3ff 0%, #f9fbff 45%, #eef7f3 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #wrapper {
+            min-height: 100vh;
+        }
+
+        #sidebar-wrapper {
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #10213f 0%, #1a2442 100%);
+            color: #ecf2ff;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.3s ease, width 0.3s ease;
+            z-index: 1045;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 45px rgba(12, 19, 39, 0.4);
+        }
+
+        #sidebar-wrapper.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        #sidebar-wrapper.collapsed .sidebar-text,
+        #sidebar-wrapper.collapsed .sidebar-heading-text,
+        #sidebar-wrapper.collapsed .sidebar-meta {
+            display: none;
+        }
+
+        #page-content-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        #wrapper.toggled #page-content-wrapper {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        #topbar {
+            min-height: var(--topbar-height);
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+
+        #menu-toggle {
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+        }
+
+        #menu-toggle:hover {
+            background: #edf2ff;
+            color: var(--primary-color);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1.25rem;
+        }
+
+        .app-footer {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(10px);
+            border-top-color: var(--border-color) !important;
+        }
+
+        .app-footer .badge {
+            font-weight: 600;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(228, 233, 247, 0.9);
+            border-radius: 18px;
+        }
+
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: 0 8px 24px rgba(15, 27, 58, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(15, 27, 58, 0.08);
+        }
+
+        .card-header {
+            border-bottom: 1px solid var(--border-color);
+            background: transparent;
+        }
+
+        .page-header {
+            background: linear-gradient(115deg, #fafdff 0%, #f2f8ff 55%, #edf7f3 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(20, 35, 70, 0.05);
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            padding: 1.25rem;
+            color: #fff;
+            box-shadow: 0 10px 20px rgba(18, 31, 61, 0.18);
+        }
+
+        .stat-value {
+            font-size: clamp(1.55rem, 2.2vw, 2.1rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .stat-label {
+            font-size: 0.86rem;
+            opacity: 0.95;
+            font-weight: 600;
+        }
+
+        .stat-icon {
+            position: absolute;
+            right: 0.9rem;
+            bottom: 0.45rem;
+            font-size: 2.2rem;
+            opacity: 0.25;
+        }
+
+        .step-icon {
+            width: 58px;
+            height: 58px;
+        }
+
+        .chart-container {
+            width: 100%;
+            min-height: 280px;
+        }
+
+        .chart-h-400 {
+            height: 400px;
+        }
+
+        .chart-h-300 {
+            height: 300px;
+        }
+
+        .chart-h-250 {
+            height: 250px;
+        }
+
+        .hover-shadow {
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .hover-shadow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(20, 35, 70, 0.1);
+        }
+
+        .custom-tabs .nav-link {
+            border: 1px solid #d9e2ff;
+            color: #445078;
+            background: #fff;
+        }
+
+        .custom-tabs .nav-link.active {
+            background: linear-gradient(135deg, #2176ff, #2458e6);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 14, 28, 0.45);
+            z-index: 1040;
+        }
+
+        #wrapper.mobile-open .sidebar-overlay {
+            display: block;
+        }
+
+        @media (max-width: 991.98px) {
+            #sidebar-wrapper {
+                transform: translateX(-100%);
+            }
+
+            #wrapper.mobile-open #sidebar-wrapper {
+                transform: translateX(0);
+            }
+
+            #page-content-wrapper,
+            #wrapper.toggled #page-content-wrapper {
+                margin-left: 0;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .chart-h-400 {
+                height: 290px;
+            }
+
+            .chart-h-300 {
+                height: 230px;
+            }
+
+            .chart-h-250 {
+                height: 205px;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% set resolved_page_title = self.page_title()|striptags|trim if self.page_title is defined else '' %}
+    <div id="wrapper">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        {% include "components/sidebar.html" %}
+        <div id="page-content-wrapper">
+            {% include "components/topbar.html" %}
+            <div class="main-content">
+                <div class="container-fluid px-0">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="mb-3">
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show rounded-3 shadow-sm border-0" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+            {% include "components/footer.html" %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const wrapper = document.getElementById("wrapper");
+            const sidebar = document.getElementById("sidebar-wrapper");
+            const overlay = document.getElementById("sidebar-overlay");
+            const menuToggle = document.getElementById("menu-toggle");
+            const desktopBreakpoint = 992;
+            const collapseKey = "energy_sidebar_collapsed";
+
+            function isDesktop() {
+                return window.innerWidth >= desktopBreakpoint;
+            }
+
+            function resizeAllPlots() {
+                if (!window.Plotly || !window.Plotly.Plots) return;
+                document.querySelectorAll(".js-plotly-plot").forEach(function (plot) {
+                    try {
+                        Plotly.Plots.resize(plot);
+                    } catch (error) {}
+                });
+            }
+
+            function syncDesktopState() {
+                if (!isDesktop()) return;
+                const collapsed = localStorage.getItem(collapseKey) === "1";
+                sidebar.classList.toggle("collapsed", collapsed);
+                wrapper.classList.toggle("toggled", collapsed);
+            }
+
+            function closeMobileSidebar() {
+                wrapper.classList.remove("mobile-open");
+            }
+
+            function toggleSidebar() {
+                if (isDesktop()) {
+                    const next = !sidebar.classList.contains("collapsed");
+                    sidebar.classList.toggle("collapsed", next);
+                    wrapper.classList.toggle("toggled", next);
+                    localStorage.setItem(collapseKey, next ? "1" : "0");
+                } else {
+                    wrapper.classList.toggle("mobile-open");
+                }
+                setTimeout(resizeAllPlots, 320);
+            }
+
+            if (menuToggle) {
+                menuToggle.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    toggleSidebar();
+                });
+            }
+
+            if (overlay) {
+                overlay.addEventListener("click", closeMobileSidebar);
+            }
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    closeMobileSidebar();
+                }
+            });
+
+            document.getElementById("page-content-wrapper").addEventListener("click", function () {
+                if (!isDesktop() && wrapper.classList.contains("mobile-open")) {
+                    closeMobileSidebar();
+                }
+            });
+
+            window.addEventListener("resize", function () {
+                if (isDesktop()) {
+                    closeMobileSidebar();
+                    syncDesktopState();
+                }
+                resizeAllPlots();
+            });
+
+            document.addEventListener("DOMContentLoaded", function () {
+                syncDesktopState();
+                setTimeout(resizeAllPlots, 200);
+            });
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

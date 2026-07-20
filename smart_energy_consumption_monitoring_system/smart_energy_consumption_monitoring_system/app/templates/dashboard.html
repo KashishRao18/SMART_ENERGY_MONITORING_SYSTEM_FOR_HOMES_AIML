@@ -1,0 +1,632 @@
+{% extends "layouts/base.html" %}
+{% block title %}Dashboard - Smart Energy Consumption Monitoring{% endblock %}
+{% block page_title %}Energy Dashboard{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <p class="text-muted mb-0">Visualize trends, monitor appliance usage, and discover energy-saving opportunities.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-primary shadow-sm rounded-pill px-4" onclick="loadDashboardData()" id="refreshBtn">
+            <i class="fas fa-sync-alt me-1"></i> Refresh Data
+        </button>
+    </div>
+</div>
+
+<!-- Alert Section (Step 8 - Anomaly Alert) -->
+<div id="alertSection" class="alert alert-danger d-none mb-4">
+    <div class="d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+        <div>
+            <h5 class="alert-heading mb-1">Unusual Energy Usage Detected!</h5>
+            <p class="mb-0" id="alertMessage"></p>
+        </div>
+    </div>
+</div>
+
+<div id="noDataState" class="alert alert-warning d-none mb-4">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    No uploaded data found. Please upload your CSV from <strong>Upload Data</strong> page.
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4" id="dashboardStatsRow">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <div class="stat-value" id="stat-records">-</div>
+            <div class="stat-label">Total Records</div>
+            <i class="fas fa-database stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="stat-value" id="stat-avg-power">-</div>
+            <div class="stat-label">Avg Power (kW)</div>
+            <i class="fas fa-bolt stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="stat-value" id="stat-max-power">-</div>
+            <div class="stat-label">Max Power (kW)</div>
+            <i class="fas fa-arrow-up stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+            <div class="stat-value" id="stat-avg-voltage">-</div>
+            <div class="stat-label">Avg Voltage (V)</div>
+            <i class="fas fa-plug stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Appliance-wise Units with Pie Chart (Step 6 & 9 from Flow) -->
+<div class="row mb-4" id="applianceSection">
+    <div class="col-md-8 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-plug text-success me-2"></i>Appliance Consumption</h5>
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="detectAppliances()" id="runApplianceBtn">
+                    <i class="fas fa-microchip me-1"></i> Run AI Detection
+                </button>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div class="row text-center mt-3" id="applianceUnits">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-snowflake fa-2x text-info"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Air Conditioner</h5>
+                            <h2 class="fw-bold text-dark mb-0" id="ac-units">-</h2>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-fan fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Fan</h5>
+                            <h2 class="fw-bold text-dark mb-0" id="fan-units">-</h2>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-box fa-2x text-warning"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Refrigerator</h5>
+                            <h2 class="fw-bold text-dark mb-0" id="fridge-units">-</h2>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                </div>
+                <div id="applianceStatus" class="mt-3 text-center text-muted bg-light py-2 rounded-3">
+                    <small><i class="fas fa-info-circle me-1"></i>Click "Run AI Detection" to identify patterns</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Pie Chart for Appliance Distribution (Step 9) -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-chart-pie text-primary me-2"></i>Distribution</h5>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="appliancePieChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Decision Support - Energy Tips (Step 10 from Flow) -->
+<div class="row mb-4" id="tipsSection">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid var(--warning-color) !important;">
+            <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-lightbulb text-warning me-2"></i>Smart Recommendations</h5>
+                <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-medium" onclick="loadEnergyTips()">
+                    <i class="fas fa-sync me-1"></i> Get Tips
+                </button>
+            </div>
+            <div class="card-body p-4" id="energyTipsContent">
+                <div class="text-center text-muted py-3 bg-light rounded-3">
+                    <p class="mb-0"><i class="fas fa-info-circle me-1"></i>Click "Get Tips" to generate personalized energy-saving recommendations based on your usage patterns.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Charts -->
+<div class="row mb-4" id="mainChartsRow">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-day text-primary me-2"></i>Daily Consumption</h5>
+                <small class="text-muted">Last 30 Days trend analysis</small>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="dailyChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-alt text-success me-2"></i>Monthly Summary</h5>
+                <small class="text-muted">Total power consumed per month</small>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="monthlyChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pattern Charts -->
+<div class="row mb-4" id="patternChartsRow">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-clock text-info me-2"></i>Hourly Pattern</h6>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="hourlyChart" class="chart-container chart-h-250"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-week text-primary me-2"></i>Weekly Pattern</h6>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="weeklyChart" class="chart-container chart-h-250"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-fire text-danger me-2"></i>Peak Hours</h6>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="peakChart" class="chart-container chart-h-250"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2" id="loadingText">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Store appliance data for pie chart
+    let applianceData = null;
+    const loadingModalElement = document.getElementById('loadingModal');
+    const loadingTextElement = document.getElementById('loadingText');
+    const loadingModal = loadingModalElement
+        ? bootstrap.Modal.getOrCreateInstance(loadingModalElement)
+        : null;
+
+    function showLoadingModal(message = 'Loading...') {
+        if (!loadingModal) return;
+        if (loadingTextElement) loadingTextElement.textContent = message;
+        loadingModal.show();
+    }
+
+    function hideLoadingModal(defaultMessage = 'Loading...') {
+        if (loadingModal) loadingModal.hide();
+        if (loadingTextElement) loadingTextElement.textContent = defaultMessage;
+        if (loadingModalElement) {
+            loadingModalElement.classList.remove('show');
+            loadingModalElement.style.display = 'none';
+            loadingModalElement.setAttribute('aria-hidden', 'true');
+            loadingModalElement.removeAttribute('aria-modal');
+            loadingModalElement.removeAttribute('role');
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    }
+
+    function computeDashboardVoltage(summary) {
+        const rawVoltage = Number(summary?.voltage?.mean || 0);
+        if (Number.isFinite(rawVoltage) && rawVoltage > 0) {
+            return rawVoltage;
+        }
+
+        const powerSummary = summary?.target || summary?.global_active_power || {};
+        const avgPowerKw = Number(powerSummary.mean || 0);
+        const avgIntensity = Number(summary?.global_intensity?.mean || 0);
+
+        if (avgPowerKw > 0 && avgIntensity > 0) {
+            // P(kW) = V * I / 1000  =>  V = (P*1000)/I
+            return (avgPowerKw * 1000) / avgIntensity;
+        }
+
+        if (avgPowerKw > 0) {
+            // Last-resort estimate when current is unavailable.
+            return 230;
+        }
+
+        return 0;
+    }
+
+    function setDashboardNoDataState(hasData) {
+        const noData = document.getElementById('noDataState');
+        const stats = document.getElementById('dashboardStatsRow');
+        const appliance = document.getElementById('applianceSection');
+        const mainCharts = document.getElementById('mainChartsRow');
+        const patternCharts = document.getElementById('patternChartsRow');
+        const tips = document.getElementById('tipsSection');
+        const runBtn = document.getElementById('runApplianceBtn');
+
+        if (hasData) {
+            noData.classList.add('d-none');
+            stats.classList.remove('d-none');
+            appliance.classList.remove('d-none');
+            mainCharts.classList.remove('d-none');
+            patternCharts.classList.remove('d-none');
+            tips.classList.remove('d-none');
+            runBtn.disabled = false;
+            return;
+        }
+
+        noData.classList.remove('d-none');
+        stats.classList.add('d-none');
+        appliance.classList.add('d-none');
+        mainCharts.classList.add('d-none');
+        patternCharts.classList.add('d-none');
+        tips.classList.add('d-none');
+        runBtn.disabled = true;
+
+        document.getElementById('stat-records').textContent = '-';
+        document.getElementById('stat-avg-power').textContent = '-';
+        document.getElementById('stat-max-power').textContent = '-';
+        document.getElementById('stat-avg-voltage').textContent = '-';
+        document.getElementById('ac-units').textContent = '-';
+        document.getElementById('fan-units').textContent = '-';
+        document.getElementById('fridge-units').textContent = '-';
+        document.getElementById('applianceStatus').innerHTML = '<small class="text-muted">Click "Run AI Detection" to identify appliance usage patterns</small>';
+
+        Plotly.purge('dailyChart');
+        Plotly.purge('monthlyChart');
+        Plotly.purge('hourlyChart');
+        Plotly.purge('weeklyChart');
+        Plotly.purge('peakChart');
+        Plotly.purge('appliancePieChart');
+    }
+
+    async function loadDashboardData() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        }
+
+        try {
+            const summaryRes = await fetch('/api/data/summary');
+            const summary = await summaryRes.json();
+            if (summary.status !== 'success') {
+                setDashboardNoDataState(false);
+                return;
+            }
+            setDashboardNoDataState(true);
+            if (summary.status === 'success') {
+                document.getElementById('stat-records').textContent = summary.summary.total_records.toLocaleString();
+                const tgt = summary.summary.target || summary.summary.global_active_power;
+                if (tgt) {
+                    document.getElementById('stat-avg-power').textContent = Number(tgt.mean || 0).toFixed(2);
+                    document.getElementById('stat-max-power').textContent = Number(tgt.max || 0).toFixed(2);
+                }
+                const avgVoltage = computeDashboardVoltage(summary.summary);
+                document.getElementById('stat-avg-voltage').textContent = avgVoltage > 0
+                    ? avgVoltage.toFixed(0)
+                    : '-';
+            }
+
+            // Load alerts (Step 8)
+            await loadAlerts();
+
+            const dailyRes = await fetch('/api/analytics/daily-data');
+            const dailyData = await dailyRes.json();
+            if (dailyData.status === 'success') renderDailyChart(dailyData.daily_data.slice(-30));
+
+            const monthlyRes = await fetch('/api/analytics/monthly-data');
+            const monthlyData = await monthlyRes.json();
+            if (monthlyData.status === 'success') renderMonthlyChart(monthlyData.monthly_data);
+
+            const hourlyRes = await fetch('/api/analytics/hourly');
+            const hourlyData = await hourlyRes.json();
+            if (hourlyData.status === 'success') renderHourlyChart(hourlyData.hourly_pattern);
+
+            const dailyPatternRes = await fetch('/api/analytics/daily');
+            const dailyPattern = await dailyPatternRes.json();
+            if (dailyPattern.status === 'success') renderWeeklyChart(dailyPattern.daily_pattern);
+
+            const peakRes = await fetch('/api/analytics/peak-hours');
+            const peakData = await peakRes.json();
+            if (peakData.status === 'success') renderPeakChart(peakData.peak_hours);
+
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }
+        }
+    }
+
+    // Load Alerts (Step 8 - Anomaly Alert)
+    async function loadAlerts() {
+        try {
+            const res = await fetch('/api/alerts/current');
+            const data = await res.json();
+
+            const alertSection = document.getElementById('alertSection');
+            const alertMessage = document.getElementById('alertMessage');
+
+            if (data.status === 'success' && data.alerts && data.alerts.length > 0) {
+                alertSection.classList.remove('d-none');
+
+                if (data.alert_severity === 'danger') {
+                    alertSection.className = 'alert alert-danger d-flex align-items-center mb-4';
+                } else if (data.alert_severity === 'warning') {
+                    alertSection.className = 'alert alert-warning d-flex align-items-center mb-4';
+                } else {
+                    alertSection.className = 'alert alert-info d-flex align-items-center mb-4';
+                }
+
+                alertMessage.textContent = data.alerts.join(' | ');
+            } else {
+                alertSection.classList.add('d-none');
+            }
+        } catch (e) {
+            console.error('Alert loading error:', e);
+        }
+    }
+
+    // Appliance detection (Step 5 - AI)
+    async function detectAppliances() {
+        showLoadingModal('Running AI Appliance Detection...');
+
+        try {
+            // Check if user data exists first
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+
+            if (summaryData.status !== 'success') {
+                setDashboardNoDataState(false);
+                // No data available
+                document.getElementById('ac-units').textContent = '-';
+                document.getElementById('fan-units').textContent = '-';
+                document.getElementById('fridge-units').textContent = '-';
+                document.getElementById('applianceStatus').innerHTML = '<small class="text-warning"><i class="fas fa-exclamation-circle"></i> No data available. Please upload your energy data first.</small>';
+                hideLoadingModal();
+                return;
+            }
+
+            // Try to get appliance data from API
+            const res = await fetch('/api/analytics/appliance-detection');
+            const data = await res.json();
+
+            if (data.status === 'success' && data.appliances) {
+                // Store for pie chart
+                applianceData = data.appliances;
+
+                // Access the units property from each appliance object
+                document.getElementById('ac-units').textContent = data.appliances.ac?.units?.toFixed(1) || '-';
+                document.getElementById('fan-units').textContent = data.appliances.fan?.units?.toFixed(1) || '-';
+                document.getElementById('fridge-units').textContent = data.appliances.fridge?.units?.toFixed(1) || '-';
+                document.getElementById('applianceStatus').innerHTML = '<small class="text-success"><i class="fas fa-check-circle"></i> Appliance detection complete!</small>';
+
+                // Render pie chart
+                renderAppliancePieChart(data.appliances);
+            } else {
+                // No real data - show placeholder
+                document.getElementById('ac-units').textContent = '-';
+                document.getElementById('fan-units').textContent = '-';
+                document.getElementById('fridge-units').textContent = '-';
+                document.getElementById('applianceStatus').innerHTML = '<small class="text-muted">Upload your energy data to enable appliance detection.</small>';
+            }
+        } catch (e) {
+            document.getElementById('applianceStatus').innerHTML = '<small class="text-danger">Error detecting appliances</small>';
+        } finally {
+            hideLoadingModal();
+        }
+    }
+
+    // Render Pie Chart for Appliance Distribution (Step 9)
+    function renderAppliancePieChart(appliances) {
+        if (!appliances) {
+            // Show empty pie chart
+            Plotly.purge('appliancePieChart');
+            return;
+        }
+
+        const labels = ['AC', 'Fan', 'Fridge', 'Other'];
+        const values = [
+            appliances.ac?.units || 0,
+            appliances.fan?.units || 0,
+            appliances.fridge?.units || 0,
+            appliances.other?.units || 0
+        ];
+        const colors = ['#17a2b8', '#007bff', '#ffc107', '#6c757d'];
+
+        const trace = {
+            values: values,
+            labels: labels,
+            type: 'pie',
+            marker: { colors: colors },
+            textinfo: 'label+percent',
+            hole: 0.4
+        };
+
+        Plotly.newPlot('appliancePieChart', [trace], {
+            margin: { t: 20, r: 20, b: 20, l: 20 },
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.1 }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        hideLoadingModal();
+    });
+
+    // Load Energy Tips (Step 10 - Decision Support)
+    async function loadEnergyTips() {
+        const content = document.getElementById('energyTipsContent');
+        content.innerHTML = '<div class="text-center"><div class="spinner-border text-warning"></div></div>';
+
+        try {
+            const res = await fetch('/api/insights/energy-tips');
+            const data = await res.json();
+
+            if (data.status === 'success' && data.tips) {
+                let html = '<div class="row g-3">';
+                data.tips.forEach((tip, index) => {
+                    const impactStyles = {
+                        'high': 'bg-danger bg-opacity-10 text-danger border-danger',
+                        'medium': 'bg-warning bg-opacity-10 text-warning border-warning',
+                        'low': 'bg-success bg-opacity-10 text-success border-success'
+                    };
+                    const impactStyle = impactStyles[tip.impact] || 'bg-secondary bg-opacity-10 text-secondary border-secondary';
+                    
+                    html += `
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 position-relative" style="border-left: 3px solid var(--primary-color) !important;">
+                                <h6 class="fw-bold text-dark mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>${tip.title}</h6>
+                                <p class="mb-3 small text-muted">${tip.description}</p>
+                                <span class="badge border ${impactStyle} position-absolute bottom-0 end-0 m-3">${tip.impact.toUpperCase()} IMPACT</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div class="text-center text-muted">No tips available. Please upload your data first.</div>';
+            }
+        } catch (e) {
+            content.innerHTML = '<div class="text-center text-danger">Error loading tips</div>';
+        }
+    }
+
+    function renderDailyChart(data) {
+        if (!data || data.length === 0) return Plotly.purge('dailyChart');
+        const trace = {
+            x: data.map(d => d.date),
+            y: data.map(d => d.Global_active_power),
+            type: 'scatter',
+            mode: 'lines+markers',
+            fill: 'tozeroy',
+            line: { color: '#00d4aa', width: 2 },
+            name: 'Power (kW)'
+        };
+        Plotly.newPlot('dailyChart', [trace], {
+            margin: { t: 20, r: 20, b: 40, l: 50 },
+            xaxis: { title: 'Date' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderMonthlyChart(data) {
+        if (!data || data.length === 0) return Plotly.purge('monthlyChart');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const xValues = data.map((d) => {
+            const numericMonth = Number(
+                d.month || d.month_number || (d.datetime ? (new Date(d.datetime).getMonth() + 1) : 0)
+            );
+            if (Number.isFinite(numericMonth) && numericMonth >= 1 && numericMonth <= 12) {
+                return months[numericMonth - 1];
+            }
+            return d.month_name || 'N/A';
+        });
+        const trace = {
+            x: xValues,
+            y: data.map(d => Number(d.Global_active_power || 0)),
+            type: 'bar',
+            marker: { color: '#00d4aa' },
+            name: 'Power (kW)'
+        };
+        Plotly.newPlot('monthlyChart', [trace], {
+            margin: { t: 20, r: 20, b: 40, l: 50 },
+            xaxis: { title: 'Month' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderHourlyChart(data) {
+        if (!data || data.length === 0) return Plotly.purge('hourlyChart');
+        const trace = {
+            x: data.map(d => d.hour),
+            y: data.map(d => d.Global_active_power),
+            type: 'scatter',
+            mode: 'lines+markers',
+            fill: 'tozeroy',
+            line: { color: '#5b8def' }
+        };
+        Plotly.newPlot('hourlyChart', [trace], {
+            margin: { t: 20, r: 20, b: 40, l: 50 },
+            xaxis: { title: 'Hour' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderWeeklyChart(data) {
+        if (!data || data.length === 0) return Plotly.purge('weeklyChart');
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const trace = {
+            x: data.map(d => days[d.day_of_week]),
+            y: data.map(d => d.Global_active_power),
+            type: 'bar',
+            marker: { color: '#667eea' }
+        };
+        Plotly.newPlot('weeklyChart', [trace], {
+            margin: { t: 20, r: 20, b: 40, l: 50 },
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderPeakChart(peakData) {
+        if (!peakData || !peakData.peak_hours) return Plotly.purge('peakChart');
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+        const colors = hours.map(h => peakData.peak_hours.includes(h) ? '#ff6b6b' : '#00d4aa');
+        const trace = {
+            x: hours,
+            y: hours.map(() => 1),
+            type: 'bar',
+            marker: { color: colors }
+        };
+        Plotly.newPlot('peakChart', [trace], {
+            margin: { t: 20, r: 20, b: 40, l: 50 },
+            xaxis: { title: 'Hour' },
+            yaxis: { showticklabels: false, title: '' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => { await loadDashboardData(); });
+</script>
+{% endblock %}

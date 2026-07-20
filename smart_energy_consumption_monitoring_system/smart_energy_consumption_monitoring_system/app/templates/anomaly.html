@@ -1,0 +1,330 @@
+{% extends "layouts/base.html" %}
+{% block title %}Anomaly Detection - Smart Energy Consumption Monitoring{% endblock %}
+{% block page_title %}Anomaly Detection{% endblock %}
+{% block content %}
+
+<!-- Page Header - Step 8: Anomaly Detection -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <p class="text-muted mb-0">System automatically compares current usage with normal patterns to flag unusual spikes.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-danger shadow-sm rounded-pill px-4" onclick="trainAnomaly()" id="trainBtn">
+            <i class="fas fa-search me-2"></i> Run Detection
+        </button>
+    </div>
+</div>
+
+<div id="noDataState" class="alert alert-warning d-none mb-4">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    No uploaded data found. Please upload your CSV from <strong>Upload Data</strong> page.
+</div>
+
+<!-- Alert Box - Step 8 -->
+<div class="row mb-4" id="alertSection" style="display: none;">
+    <div class="col-12">
+        <div class="alert bg-danger bg-opacity-10 border-danger border-opacity-50 text-danger d-flex align-items-center p-4 rounded-4 shadow-sm" role="alert">
+            <div class="bg-danger bg-opacity-25 p-3 rounded-circle me-4">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+            </div>
+            <div>
+                <h4 class="alert-heading fw-bold mb-1">Unusual Energy Usage Detected!</h4>
+                <p class="mb-0 fw-medium" id="alertMessage">Unusual energy usage detected.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4" id="statsRow">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <div class="stat-value" id="totalRecords">-</div>
+            <div class="stat-label">Total Records</div>
+            <i class="fas fa-database stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <div class="stat-value" id="anomalyCount">-</div>
+            <div class="stat-label">Anomalies Found</div>
+            <i class="fas fa-exclamation-circle stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="stat-value" id="normalCount">-</div>
+            <div class="stat-label">Normal Readings</div>
+            <i class="fas fa-check-circle stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="stat-value" id="anomalyPercent">-</div>
+            <div class="stat-label">Anomaly Rate</div>
+            <i class="fas fa-percentage stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="row mb-4" id="chartRow">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-chart-line text-primary me-2"></i>Consumption with Anomalies</h5>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="anomalyChart" class="chart-container chart-h-400"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insights -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 4px solid var(--warning-color) !important;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-lightbulb text-warning me-2"></i>Energy Insights</h5>
+            </div>
+            <div class="card-body px-4 py-4" id="insights">
+                <div class="text-center text-muted bg-light p-4 rounded-4">
+                    <i class="fas fa-search fa-2x mb-3 text-secondary opacity-50"></i>
+                    <p class="mb-0">Click "Run Detection" to analyze your energy usage patterns.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 4px solid var(--info-color) !important;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-clipboard-list text-info me-2"></i>Smart Recommendations</h5>
+            </div>
+            <div class="card-body px-4 py-4" id="recommendations">
+                <ul class="list-unstyled mb-0 w-100">
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success mt-1 me-3"></i>
+                        <span>Check appliances left on during peak hours</span>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success mt-1 me-3"></i>
+                        <span>Look for unusual power spikes that persist</span>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success mt-1 me-3"></i>
+                        <span>Review time-of-use patterns and shift loads</span>
+                    </li>
+                    <li class="mb-0 d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success mt-1 me-3"></i>
+                        <span>Consider smart power strips for phantom loads</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-danger" role="status"></div>
+                <p class="mt-2">Running Anomaly Detection...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let trained = false;
+    let hasData = false;
+
+    function setAnomalyNoDataState(dataAvailable) {
+        hasData = dataAvailable;
+        const noData = document.getElementById('noDataState');
+        const stats = document.getElementById('statsRow');
+        const chart = document.getElementById('chartRow');
+        const alertSection = document.getElementById('alertSection');
+        const trainBtn = document.getElementById('trainBtn');
+
+        if (dataAvailable) {
+            noData.classList.add('d-none');
+            stats.classList.remove('d-none');
+            chart.classList.remove('d-none');
+            trainBtn.disabled = false;
+            return;
+        }
+
+        noData.classList.remove('d-none');
+        stats.classList.add('d-none');
+        chart.classList.add('d-none');
+        alertSection.style.display = 'none';
+        trainBtn.disabled = true;
+        trained = false;
+        Plotly.purge('anomalyChart');
+    }
+
+    async function loadMeta() {
+        try {
+            const res = await fetch('/api/data/summary');
+            const data = await res.json();
+            setAnomalyNoDataState(data.status === 'success');
+        } catch (e) {
+            setAnomalyNoDataState(false);
+        }
+    }
+
+    async function trainAnomaly() {
+        const btn = document.getElementById('trainBtn');
+        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        modal.show();
+
+        try {
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+            if (summaryData.status !== 'success') {
+                setAnomalyNoDataState(false);
+                btn.innerHTML = '<i class="fas fa-search"></i> Run Detection';
+                modal.hide();
+                return;
+            }
+            setAnomalyNoDataState(true);
+        } catch (e) {
+            setAnomalyNoDataState(false);
+            btn.innerHTML = '<i class="fas fa-search"></i> Run Detection';
+            modal.hide();
+            return;
+        }
+
+        const res = await fetch('/api/anomaly/train', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contamination: 0.01 })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            trained = true;
+            await detectAnomalies();
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i> Run Detection';
+        modal.hide();
+    }
+
+    async function detectAnomalies() {
+        try {
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+            if (summaryData.status !== 'success') {
+                setAnomalyNoDataState(false);
+                return;
+            }
+            setAnomalyNoDataState(true);
+        } catch (e) {
+            setAnomalyNoDataState(false);
+            return;
+        }
+
+        const res = await fetch('/api/anomaly/detect');
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            trained = true;
+            document.getElementById('totalRecords').textContent = data.result.total_records.toLocaleString();
+            document.getElementById('anomalyCount').textContent = data.result.anomaly_count;
+            document.getElementById('normalCount').textContent = data.result.normal_count;
+            document.getElementById('anomalyPercent').textContent = data.result.anomaly_percentage.toFixed(1) + '%';
+
+            // Show alert if anomalies found (Step 8)
+            const alertSection = document.getElementById('alertSection');
+            const alertMessage = document.getElementById('alertMessage');
+
+            if (data.result.anomaly_percentage >= 1.0) {
+                alertSection.style.display = 'block';
+                if (data.result.time_alert && data.result.time_alert.message) {
+                    alertMessage.textContent = `${data.result.time_alert.message} (${data.result.time_alert.anomaly_count} anomalies).`;
+                } else {
+                    alertMessage.textContent = `Found ${data.result.anomaly_count} unusual readings (${data.result.anomaly_percentage.toFixed(2)}%). This may indicate power wastage or appliance issues.`;
+                }
+            } else {
+                alertSection.style.display = 'none';
+            }
+
+            if (data.result.data) {
+                renderAnomalyChart(data.result.data);
+            }
+        } else if (data.status === 'not_trained') {
+            trained = false;
+            document.getElementById('insights').innerHTML = '<div class="alert alert-warning">Train the anomaly detector to view results.</div>';
+            return;
+        }
+
+        const patRes = await fetch('/api/anomaly/patterns');
+        const patData = await patRes.json();
+        if (patData.status === 'success') {
+            document.getElementById('insights').innerHTML = '<div class="alert alert-info">' + patData.patterns.insight + '</div>';
+        } else if (patData.status === 'not_trained') {
+            document.getElementById('insights').innerHTML = '<div class="alert alert-warning">Train the anomaly detector to view patterns.</div>';
+        }
+    }
+
+    function renderAnomalyChart(data) {
+        const parseChartDate = (value) => {
+            // API now returns `YYYY-MM-DD HH:mm:ss`; this also safely handles legacy GMT strings.
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+        };
+
+        const normal = data.filter(d => !d.is_anomaly);
+        const anomaly = data.filter(d => d.is_anomaly);
+
+        const trace1 = {
+            x: normal.map(d => parseChartDate(d.datetime)),
+            y: normal.map(d => d.Global_active_power),
+            type: 'scattergl',
+            mode: 'markers',
+            name: 'Normal',
+            marker: { color: '#00d4aa', size: 8 }
+        };
+
+        const trace2 = {
+            x: anomaly.map(d => parseChartDate(d.datetime)),
+            y: anomaly.map(d => d.Global_active_power),
+            type: 'scattergl',
+            mode: 'markers',
+            name: 'Anomaly',
+            marker: { color: '#ff6b6b', size: 12, symbol: 'x' }
+        };
+
+        Plotly.newPlot('anomalyChart', [trace1, trace2], {
+            margin: { t: 20, r: 20, b: 80, l: 60 },
+            xaxis: {
+                title: 'DateTime',
+                type: 'date',
+                tickformat: '%d %b %H:%M',
+                hoverformat: '%Y-%m-%d %H:%M:%S',
+                tickangle: -35,
+                automargin: true,
+                nticks: 10
+            },
+            yaxis: { title: 'Power (kW)' },
+            legend: { x: 0, y: 1 }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadMeta();
+        await detectAnomalies();
+    });
+</script>
+{% endblock %}

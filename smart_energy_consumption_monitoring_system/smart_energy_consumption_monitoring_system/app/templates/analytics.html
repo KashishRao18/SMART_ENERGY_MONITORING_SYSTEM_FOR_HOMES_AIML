@@ -1,0 +1,463 @@
+{% extends "layouts/base.html" %}
+{% block title %}Analytics - Smart Energy Consumption Monitoring{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block content %}
+
+<!-- Page Header - Step 5: Appliance Detection -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <p class="text-muted mb-0">AI checks power spikes, stable loads, and ON/OFF patterns to identify appliances.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-success shadow-sm rounded-pill px-4" onclick="runApplianceDetection()" id="detectBtn">
+            <i class="fas fa-robot me-2"></i> Run AI Detection
+        </button>
+    </div>
+</div>
+
+<div id="noDataState" class="alert alert-warning d-none mb-4">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    No uploaded data found. Please upload your CSV from <strong>Upload Data</strong> page.
+</div>
+
+<!-- Appliance Summary - Step 6: Unit Calculation -->
+<div class="row mb-4" id="applianceSummary">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-top: 4px solid var(--success-color) !important;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-calculator text-success me-2"></i>Unit Calculation Results</h5>
+            </div>
+            <div class="card-body px-4 py-4">
+                <div class="row text-center g-3">
+                    <div class="col-md-3">
+                        <div class="p-4 rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-snowflake fa-2x text-info"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Air Conditioner</h5>
+                            <div class="display-5 fw-bold text-dark mb-0" id="acUnits">-</div>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-4 rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-fan fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Fan</h5>
+                            <div class="display-5 fw-bold text-dark mb-0" id="fanUnits">-</div>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-4 rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-box fa-2x text-warning"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Refrigerator</h5>
+                            <div class="display-5 fw-bold text-dark mb-0" id="fridgeUnits">-</div>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-4 rounded-4 bg-light h-100 transition-all hover-shadow">
+                            <div class="rounded-circle bg-secondary bg-opacity-10 p-3 d-inline-block mb-3">
+                                <i class="fas fa-plug fa-2x text-secondary"></i>
+                            </div>
+                            <h5 class="text-secondary mb-1">Other</h5>
+                            <div class="display-5 fw-bold text-dark mb-0" id="otherUnits">-</div>
+                            <small class="text-muted fw-medium">kWh</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How AI Detection Works -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-brain text-primary me-2"></i>How AI Detects Appliances</h5>
+            </div>
+            <div class="card-body px-4 py-4">
+                <div class="row g-4">
+                    <div class="col-md-4 text-center">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <i class="fas fa-wave-square fa-3x text-info mb-3"></i>
+                            <h6 class="fw-bold">Power Spikes</h6>
+                            <small class="text-muted">AI identifies sudden increases in power consumption</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <i class="fas fa-battery-full fa-3x text-success mb-3"></i>
+                            <h6 class="fw-bold">Stable Loads</h6>
+                            <small class="text-muted">Detects consistent power draw (e.g., refrigerator)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <i class="fas fa-toggle-on fa-3x text-warning mb-3"></i>
+                            <h6 class="fw-bold">ON/OFF Patterns</h6>
+                            <small class="text-muted">Identifies switching patterns (e.g., AC, Fan)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Type -->
+<div class="row mb-4" id="analysisControlsRow">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <select class="form-select" id="analysisType" onchange="loadAnalytics()">
+                    <option value="hourly">Hourly Pattern View</option>
+                    <option value="daily">Daily Pattern View</option>
+                    <option value="monthly">Monthly Pattern View</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Chart -->
+<div class="row mb-4" id="mainChartRow">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="fw-bold text-dark mb-0" id="chartTitle">Consumption Pattern</h5>
+            </div>
+            <div class="card-body px-2 pb-2">
+                <div id="mainChart" class="chart-container chart-h-400"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4" id="statsRow">
+    <div class="col-md-3">
+        <div class="card text-center mb-0 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold">Mean</h6>
+                <h3 class="text-primary fw-bold mb-0" id="statMean">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center mb-0 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold">Std Dev</h6>
+                <h3 class="text-success fw-bold mb-0" id="statStd">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center mb-0 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold">Min</h6>
+                <h3 class="text-warning fw-bold mb-0" id="statMin">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center mb-0 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold">Max</h6>
+                <h3 class="text-danger fw-bold mb-0" id="statMax">-</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-success" role="status"></div>
+                <p class="mt-2" id="loadingText">Running AI Detection...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const loadingModalElement = document.getElementById('loadingModal');
+    const loadingTextElement = document.getElementById('loadingText');
+    const loadingModal = loadingModalElement
+        ? bootstrap.Modal.getOrCreateInstance(loadingModalElement)
+        : null;
+
+    function showLoadingModal(message = 'Running AI Detection...') {
+        if (!loadingModal) return;
+        if (loadingTextElement) loadingTextElement.textContent = message;
+        loadingModal.show();
+    }
+
+    function hideLoadingModal(defaultMessage = 'Running AI Detection...') {
+        if (loadingModal) loadingModal.hide();
+        if (loadingTextElement) loadingTextElement.textContent = defaultMessage;
+        if (loadingModalElement) {
+            loadingModalElement.classList.remove('show');
+            loadingModalElement.style.display = 'none';
+            loadingModalElement.setAttribute('aria-hidden', 'true');
+            loadingModalElement.removeAttribute('aria-modal');
+            loadingModalElement.removeAttribute('role');
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    }
+
+    function setAnalyticsNoDataState(hasData) {
+        const noData = document.getElementById('noDataState');
+        const summary = document.getElementById('applianceSummary');
+        const controls = document.getElementById('analysisControlsRow');
+        const mainChartRow = document.getElementById('mainChartRow');
+        const stats = document.getElementById('statsRow');
+        const detectBtn = document.getElementById('detectBtn');
+
+        if (hasData) {
+            noData.classList.add('d-none');
+            summary.classList.remove('d-none');
+            controls.classList.remove('d-none');
+            mainChartRow.classList.remove('d-none');
+            stats.classList.remove('d-none');
+            detectBtn.disabled = false;
+            return;
+        }
+
+        noData.classList.remove('d-none');
+        summary.classList.add('d-none');
+        controls.classList.add('d-none');
+        mainChartRow.classList.add('d-none');
+        stats.classList.add('d-none');
+        detectBtn.disabled = true;
+        Plotly.purge('mainChart');
+    }
+
+    // Run appliance detection
+    async function runApplianceDetection() {
+        const btn = document.getElementById('detectBtn');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        showLoadingModal('Running AI appliance detection...');
+
+        try {
+            // Check if user data exists first
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+
+            if (summaryData.status !== 'success') {
+                setAnalyticsNoDataState(false);
+                // No data available - show message
+                btn.innerHTML = '<i class="fas fa-robot"></i> Run AI Detection';
+                document.getElementById('acUnits').textContent = '-';
+                document.getElementById('fanUnits').textContent = '-';
+                document.getElementById('fridgeUnits').textContent = '-';
+                document.getElementById('otherUnits').textContent = '-';
+
+                showBanner('Please upload your energy data first! Go to "Upload Data" page.', 'warning');
+                hideLoadingModal();
+                return;
+            }
+
+            // Call the appliance detection API
+            const applianceRes = await fetch('/api/analytics/appliance-detection');
+            const applianceData = await applianceRes.json();
+
+            if (applianceData.status === 'success') {
+                setAnalyticsNoDataState(true);
+                // Update the UI with real calculated values
+                const appliances = applianceData.appliances;
+                document.getElementById('acUnits').textContent = appliances.ac.units.toFixed(1);
+                document.getElementById('fanUnits').textContent = appliances.fan.units.toFixed(1);
+                document.getElementById('fridgeUnits').textContent = appliances.fridge.units.toFixed(1);
+                document.getElementById('otherUnits').textContent = appliances.other.units.toFixed(1);
+
+                showBanner('Appliance detection complete! Values estimated from your energy data.', 'success');
+            } else {
+                // Show dashes if detection failed
+                document.getElementById('acUnits').textContent = '-';
+                document.getElementById('fanUnits').textContent = '-';
+                document.getElementById('fridgeUnits').textContent = '-';
+                document.getElementById('otherUnits').textContent = '-';
+
+                showBanner('Could not complete appliance detection. Please try again.', 'warning');
+            }
+
+            btn.innerHTML = '<i class="fas fa-check"></i> Analysis Complete';
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('acUnits').textContent = '-';
+            document.getElementById('fanUnits').textContent = '-';
+            document.getElementById('fridgeUnits').textContent = '-';
+            document.getElementById('otherUnits').textContent = '-';
+            showBanner('Error running appliance detection.', 'danger');
+        } finally {
+            hideLoadingModal();
+            btn.disabled = !document.getElementById('noDataState').classList.contains('d-none');
+        }
+    }
+
+    async function loadAnalytics() {
+        try {
+            const summaryRes = await fetch('/api/data/summary');
+            const summaryData = await summaryRes.json();
+            if (summaryData.status !== 'success') {
+                setAnalyticsNoDataState(false);
+                return;
+            }
+            setAnalyticsNoDataState(true);
+        } catch (e) {
+            setAnalyticsNoDataState(false);
+            return;
+        }
+
+        const type = document.getElementById('analysisType').value;
+        let endpoint = '/api/analytics/' + type;
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            let chartData = data[type + '_pattern'];
+
+            if (type === 'hourly') {
+                document.getElementById('chartTitle').textContent = 'Hourly Consumption Pattern';
+                renderHourly(chartData);
+            }
+            if (type === 'daily') {
+                document.getElementById('chartTitle').textContent = 'Daily Consumption Pattern';
+                renderDaily(chartData);
+            }
+            if (type === 'monthly') {
+                document.getElementById('chartTitle').textContent = 'Monthly Consumption Pattern';
+                renderMonthly(chartData);
+            }
+
+            const vals = chartData && chartData.map ? chartData.map(d => d.Global_active_power) : [];
+            if (vals.length > 0) {
+                const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+                const std = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+                document.getElementById('statMean').textContent = mean.toFixed(3);
+                document.getElementById('statStd').textContent = std.toFixed(3);
+                document.getElementById('statMin').textContent = Math.min(...vals).toFixed(3);
+                document.getElementById('statMax').textContent = Math.max(...vals).toFixed(3);
+            } else {
+                document.getElementById('statMean').textContent = '-';
+                document.getElementById('statStd').textContent = '-';
+                document.getElementById('statMin').textContent = '-';
+                document.getElementById('statMax').textContent = '-';
+            }
+        } else {
+            Plotly.purge('mainChart');
+            document.getElementById('statMean').textContent = '-';
+            document.getElementById('statStd').textContent = '-';
+            document.getElementById('statMin').textContent = '-';
+            document.getElementById('statMax').textContent = '-';
+        }
+    }
+
+    async function loadMeta() {
+        try {
+            const res = await fetch('/api/data/summary');
+            const data = await res.json();
+            setAnalyticsNoDataState(data.status === 'success');
+        } catch (e) {
+            setAnalyticsNoDataState(false);
+        }
+    }
+
+    function renderHourly(data) {
+        if (!data || data.length === 0) {
+            Plotly.purge('mainChart');
+            return;
+        }
+        const trace = {
+            x: data.map(d => d.hour),
+            y: data.map(d => d.Global_active_power),
+            type: 'scatter',
+            mode: 'lines+markers',
+            fill: 'tozeroy',
+            line: { color: '#00d4aa', width: 2 }
+        };
+        Plotly.newPlot('mainChart', [trace], {
+            margin: { t: 20, r: 20, b: 50, l: 60 },
+            xaxis: { title: 'Hour' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderDaily(data) {
+        if (!data || data.length === 0) {
+            Plotly.purge('mainChart');
+            return;
+        }
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const trace = {
+            x: data.map(d => days[d.day_of_week]),
+            y: data.map(d => d.Global_active_power),
+            type: 'bar',
+            marker: { color: '#667eea' }
+        };
+        Plotly.newPlot('mainChart', [trace], {
+            margin: { t: 20, r: 20, b: 50, l: 60 },
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderMonthly(data) {
+        if (!data || data.length === 0) {
+            Plotly.purge('mainChart');
+            return;
+        }
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const trace = {
+            x: data.map(d => months[d.month - 1]),
+            y: data.map(d => d.Global_active_power),
+            type: 'bar',
+            marker: { color: '#f39c12' }
+        };
+        Plotly.newPlot('mainChart', [trace], {
+            margin: { t: 20, r: 20, b: 50, l: 60 },
+            xaxis: { title: 'Month' },
+            yaxis: { title: 'Power (kW)' }
+        }, { responsive: true, displayModeBar: false });
+    }
+
+    function showBanner(message, type = 'info') {
+        let banner = document.getElementById('banner-alert');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'banner-alert';
+            banner.className = 'alert alert-info position-fixed top-0 end-0 m-3 shadow';
+            banner.style.zIndex = '2000';
+            document.body.appendChild(banner);
+        }
+        banner.className = `alert alert-${type} position-fixed top-0 end-0 m-3 shadow`;
+        banner.textContent = message;
+        setTimeout(() => {
+            banner.remove();
+        }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        hideLoadingModal();
+        await loadMeta();
+        await loadAnalytics();
+    });
+</script>
+{% endblock %}
